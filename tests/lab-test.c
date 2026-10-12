@@ -378,6 +378,10 @@ static void test_sender_stale_ack_is_noop(void)
 
    gbn_sender_on_ack(&s, 3, 30, &out); /* ack_seq == base: also a duplicate */
    TEST_ASSERT_EQUAL_UINT32(0, out.count);
+
+   gbn_sender_on_ack(&s, next_before + 1u, 40, &out); /* beyond next: never sent, ignored */
+   TEST_ASSERT_EQUAL_UINT32(0, out.count);
+   TEST_ASSERT_EQUAL_UINT32(base_before, s.base);
 }
 
 static void test_sender_timeout_resend_is_byte_identical(void)
@@ -621,6 +625,26 @@ static void test_cli_session_too_long_is_error(void)
                    "relayhost", "file.bin"};
    cli_config_t cfg;
    TEST_ASSERT_EQUAL_INT(CLI_ERROR, cli_parse((int)(sizeof(argv) / sizeof(argv[0])), argv, &cfg));
+}
+
+static void test_cli_malformed_numbers_are_errors(void)
+{
+   const char *bad[][2] = {{"-s", ""},    {"-w", "4x"}, {"-l", "0.1x"}, {"-l", "-0.1"},
+                           {"-l", "nan"}, {"-T", "0"},  {"-p", "0"}};
+   for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++)
+   {
+      cli_config_t cfg;
+      char *argv[] = {"myapp",           "send",      "-s",      "sess", (char *)bad[i][0],
+                      (char *)bad[i][1], "relayhost", "file.bin"};
+      if (strcmp(bad[i][0], "-s") == 0)
+      {
+         argv[3] = (char *)bad[i][1]; /* replace the valid session instead of duplicating it */
+         argv[4] = "-w";
+         argv[5] = "4";
+      }
+      TEST_ASSERT_EQUAL_INT(CLI_ERROR,
+                            cli_parse((int)(sizeof(argv) / sizeof(argv[0])), argv, &cfg));
+   }
 }
 
 static void test_cli_empty_flag_value_is_error(void)
@@ -988,6 +1012,7 @@ int main(void)
    RUN_TEST(test_cli_unknown_mode_is_error);
    RUN_TEST(test_cli_send_only_flag_on_recv_is_error);
    RUN_TEST(test_cli_session_too_long_is_error);
+   RUN_TEST(test_cli_malformed_numbers_are_errors);
    RUN_TEST(test_cli_empty_flag_value_is_error);
    RUN_TEST(test_cli_each_flags_own_parse_failure_is_error);
    RUN_TEST(test_cli_print_usage_does_not_crash);

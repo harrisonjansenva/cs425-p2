@@ -1,22 +1,13 @@
-# Project X
+# Project 2
 
-- Name: John Doe
-- Email: johndoe@u.boisestate.edu
-- Class: CS123-001
+- Name: Harrison Jansen van Beek
+- Email: harrisonjansenva@u.boisestate.edu
+- Class: CS425-001
 
 ## Known Bugs or Issues
 
-TODO: Are there any known issues?
+No known bugs or issues.
 
 ## Experience
 
-TODO: Describe your experience with the project (struggles, breakthroughs, etc.).
-
-## Analysis
-
-TODO: Provide your analysis of the results. If the assignment does not require
-analysis, you can remove this section.
-
-Here is an example of how to include a plot in your README:
-
-![Example Image](scripts/example_plot.png)
+I heavily use AI to build this project, as was encouraged in the class. Overall, I have a good understanding of ARQ as a concept and felt like the code my agents wrote was logical. I probably should dig more into the code written, but with OS and architecture currently breathing down my neck, I relied more heavily on Claude than I normally would. 

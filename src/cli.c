@@ -25,7 +25,7 @@ static bool session_is_valid(const char *s)
 
 static bool parse_u32(const char *s, uint32_t min, uint32_t max, uint32_t *out)
 {
-   if (s == NULL || s[0] == '\0')
+   if (s[0] == '\0')
    {
       return false;
    }
@@ -45,7 +45,7 @@ static bool parse_u32(const char *s, uint32_t min, uint32_t max, uint32_t *out)
 
 static bool parse_double_prob(const char *s, double *out)
 {
-   if (s == NULL || s[0] == '\0')
+   if (s[0] == '\0')
    {
       return false;
    }
@@ -55,7 +55,7 @@ static bool parse_double_prob(const char *s, double *out)
    {
       return false;
    }
-   if (val < 0.0 || val > 0.5)
+   if (!(val >= 0.0 && val <= 0.5))
    {
       return false;
    }
@@ -123,7 +123,7 @@ cli_status_t cli_parse(int argc, char *const argv[], cli_config_t *out)
          }
          break;
       case 'T':
-         if (!parse_u32(optarg, 0, UINT32_MAX, &timeout_ms))
+         if (!parse_u32(optarg, 1, UINT32_MAX, &timeout_ms))
          {
             return CLI_ERROR;
          }
@@ -149,7 +149,7 @@ cli_status_t cli_parse(int argc, char *const argv[], cli_config_t *out)
       case 'p':
       {
          uint32_t port_val;
-         if (!parse_u32(optarg, 0, 65535, &port_val))
+         if (!parse_u32(optarg, 1, 65535, &port_val))
          {
             return CLI_ERROR;
          }

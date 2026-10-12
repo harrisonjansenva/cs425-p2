@@ -68,7 +68,8 @@ void gbn_sender_init(gbn_sender_t *s, uint32_t window, uint64_t timeout_ms,
 
 void gbn_sender_on_ack(gbn_sender_t *s, uint32_t ack_seq, uint64_t now_ms, gbn_action_t *out)
 {
-   if (ack_seq > s->base)
+   /* An ACK beyond next acknowledges a packet never sent; treat it like a duplicate. */
+   if (ack_seq > s->base && ack_seq <= s->next)
    {
       s->base = ack_seq;
       s->consecutive_timeouts = 0;
