@@ -12,6 +12,42 @@ No known bugs or issues.
 
 I heavily use AI to build this project, as was encouraged in the class. Overall, I have a good understanding of ARQ as a concept and felt like the code my agents wrote was logical. I probably should dig more into the code written, but with OS and architecture currently breathing down my neck, I relied more heavily on Claude than I normally would. 
 
+## Design
+
+The program is split into three layers so that all of the protocol logic can be unit tested
+without a socket, a clock, or a file. A lossy relay is random and slow, but a test that controls
+every packet and every "current time" is deterministic.
+
+1. **Packets** (`src/packet.c`). Pure functions: `pkt_checksum` (RFC 1071), `pkt_encode`, and
+   `pkt_decode`, which validates a datagram (minimum size, length matches size, length at most
+   1024, known type, reserved is 0, checksum). Fields are written byte by byte in network order,
+   never by copying a struct onto the wire, and the length is checked against the datagram size
+   before any payload byte is copied.
+2. **Go-Back-N state machines** (`src/gbn_sender.c`, `src/gbn_receiver.c`). The sender is a struct
+   plus `gbn_sender_init`, `gbn_sender_on_ack` and `gbn_sender_on_timeout`. The receiver is a
+   struct plus `gbn_receiver_on_packet`. The current time is always passed in as a parameter in
+   milliseconds, and each call returns an action describing what to do: which packets to send,
+   what payload to deliver, whether to send an ACK, and when the timer is due. Nothing here calls
+   `sendto`, `recvfrom`, `poll`, `clock_gettime`, or `fwrite`, and nothing allocates. The sender
+   keeps the already-encoded bytes of every in-flight packet in a fixed 64-slot ring, so a timeout
+   resends exactly what was sent before. The FIN is treated as one more packet in the same ring.
+3. **I/O** (`src/main.c`). The only file that knows about sockets, `poll`, `CLOCK_MONOTONIC`, and
+   files. It resolves the relay with `getaddrinfo`, opens one connected UDP socket, performs the
+   relay hello (up to five attempts, one second apart), and then runs a thin loop: wait for a
+   datagram or the timer, hand the event to the state machine, and carry out the returned action.
+   The receiver's 30 second idle timeout and 2 second linger live here, as does the mapping to
+   exit codes 0, 1 and 2.
+
+Command line parsing (`src/cli.c`) is a fourth, pure piece: it only turns `argv` into a
+configuration struct and validates ranges, so it is tested without running the program.
+
+Because the state machines only see events and a fake clock, the tests can lose, corrupt or
+duplicate any packet by simply not passing it along, and can trigger a timeout by passing a
+larger "now". `tests/lab-test.c` uses this to run a complete transfer between the real sender and
+receiver state machines through an in-memory channel with 20% loss, corruption and duplication in
+each direction, using a fixed-seed random number generator. The same split is why `main.c` is
+the only file excluded from the coverage report: everything else is reachable from the tests.
+
 ## Results
 
 Setup: 1 MiB random file (`head -c 1048576 /dev/urandom`), relay started with `--delay 50` (100 ms
